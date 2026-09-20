@@ -31,9 +31,20 @@ jobs:
             -o data/cwa_tsunami.json
           head -c 120 data/cwa_tsunami.json; echo
       - name: Commit
+        id: commit
         run: |
           git config user.name github-actions
           git config user.email actions@github.com
           git add data/cwa_tsunami.json
-          git diff --staged --quiet || git commit -m "update cwa tsunami"
-          git push
+          if git diff --staged --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "update cwa tsunami"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      # v572：数据变化时清掉 jsDelivr 缓存（raw 被墙时 SQM 会用 jsDelivr 镜像兜底，需保持最新）
+      - name: Purge jsDelivr cache
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          curl -sS --max-time 20 "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/data/cwa_tsunami.json" || true
