@@ -1,0 +1,39 @@
+# =====================================================
+# 台湾 CWA 海啸资讯转发 —— GitHub Actions（每 5 分钟抓取并提交静态 JSON）
+#   用法：
+#     1) 新建一个仓库（可私有），把本文件放到 .github/workflows/cwa-tsunami.yml
+#     2) 仓库 Settings → Secrets and variables → Actions → New repository secret
+#        名称 CWA_KEY，值 = 你的授权码
+#     3) 仓库 Settings → Actions → General → Workflow permissions 选 "Read and write"
+#     4) 手动跑一次（Actions → cwa-tsunami → Run workflow）生成 data/cwa_tsunami.json
+#     5) 在 SQM 设置"台湾 CWA 海啸资讯"里填：
+#        https://raw.githubusercontent.com/<用户名>/<仓库名>/main/data/cwa_tsunami.json
+#   注意：GitHub Actions 定时任务最小间隔约 5 分钟且可能延迟；对海啸够用但不如
+#         Cloudflare Worker（1 分钟）及时。若 GitHub 访问不稳，可改用 Gitee/GitCode 同理。
+# =====================================================
+name: cwa-tsunami
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch CWA tsunami
+        run: |
+          mkdir -p data
+          curl -sS --max-time 30 \
+            "https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0014-001?Authorization=${{ secrets.CWA_KEY }}&format=JSON&limit=10" \
+            -o data/cwa_tsunami.json
+          head -c 120 data/cwa_tsunami.json; echo
+      - name: Commit
+        run: |
+          git config user.name github-actions
+          git config user.email actions@github.com
+          git add data/cwa_tsunami.json
+          git diff --staged --quiet || git commit -m "update cwa tsunami"
+          git push
