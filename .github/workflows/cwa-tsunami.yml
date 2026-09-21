@@ -1,16 +1,4 @@
-# =====================================================
-# 台湾 CWA 海啸资讯转发 —— GitHub Actions（每 5 分钟抓取并提交静态 JSON）
-#   用法：
-#     1) 新建一个仓库（可私有），把本文件放到 .github/workflows/cwa-tsunami.yml
-#     2) 仓库 Settings → Secrets and variables → Actions → New repository secret
-#        名称 CWA_KEY，值 = 你的授权码
-#     3) 仓库 Settings → Actions → General → Workflow permissions 选 "Read and write"
-#     4) 手动跑一次（Actions → cwa-tsunami → Run workflow）生成 data/cwa_tsunami.json
-#     5) 在 SQM 设置"台湾 CWA 海啸资讯"里填：
-#        https://raw.githubusercontent.com/<用户名>/<仓库名>/main/data/cwa_tsunami.json
-#   注意：GitHub Actions 定时任务最小间隔约 5 分钟且可能延迟；对海啸够用但不如
-#         Cloudflare Worker（1 分钟）及时。若 GitHub 访问不稳，可改用 Gitee/GitCode 同理。
-# =====================================================
+
 name: cwa-tsunami
 on:
   schedule:
@@ -43,7 +31,7 @@ jobs:
             git push
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-      # v572：数据变化时清掉 jsDelivr 缓存（raw 被墙时 SQM 会用 jsDelivr 镜像兜底，需保持最新）
+ 
       - name: Purge jsDelivr cache
         if: steps.commit.outputs.changed == 'true'
         run: |
